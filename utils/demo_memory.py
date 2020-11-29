@@ -37,7 +37,7 @@ def _frame_from_video(video, args):
             break
 
 
-def process_predictions(data, model, frame, args):
+def process_predictions(data, model, frame, args, memory):
     # read data
     batch = []
     for image in data:
@@ -47,11 +47,15 @@ def process_predictions(data, model, frame, args):
     batch = torch.from_numpy(np.concatenate(batch, axis=0)).unsqueeze(0)
     images = batch.cuda()
     input_image = images.detach()
-    target_image = images.detach()
+    target_image = images[:,-3:]
+
     # inference
+    start_time = time.time()
     with autocast():
-        output, loss = model.forward(input_image, gt=target_image, label=None, train=False)
-        loss = loss['pixel_loss'].view(loss['pixel_loss'].shape[0], -1).mean()
+        reconstructed_image, loss, _ = model.forward(input_image, gt=target_image, memory=memory, train=True)
+        loss = 0.8 * loss['pixel_loss'].mean() + 0.2 * loss['memory_loss'].mean()
+    end_time = time.time()
+
     score = psnr(loss.item())
     score = (score - 6.155684455823476) / (30.498493499121643 - 6.155684455823476)
 
@@ -60,16 +64,16 @@ def process_predictions(data, model, frame, args):
     else:
         res = "Normal," + str(format(score, '.5f'))
 
-    output = output[:, -3:]
+    output = reconstructed_image
     predict = 255 * (output + 1.) / 2
     predict = predict.squeeze(0).byte().cpu().numpy().transpose((1,2,0))
     predict = cv2.resize(predict, (frame.shape[1], frame.shape[0]))
     predict = cv2.cvtColor(predict, cv2.COLOR_RGB2BGR)
-    # print("The category of frame is {}, psnr is {}, time cost: {}".format(res, score, time.time()-start_time))
+    print("The category of frame is {}, psnr is {}, time cost: {}".format(res, score, end_time-start_time))
     return res, predict, frame
 
 
-def run_on_video(cam, model, args):
+def run_on_video(cam, model, args, memory):
     frames = _frame_from_video(cam, args)
     data = []
     # args.h, args.w = 64, 64
@@ -93,18 +97,18 @@ def run_on_video(cam, model, args):
             data.append(image)
         elif len(data) == frame_length - 1:
             data.append(image)
-            yield process_predictions(data, model, frame, args)
+            yield process_predictions(data, model, frame, args, memory)
         else:
             print("DATA LENGTH ERROR")
 
 
-def demo(model, args):
+def demo_memory(model, args, memory):
     model.eval()
 
     demo_type, demo_dir = args.demo.split('|')
     if demo_type == "webcam":
         cam = cv2.VideoCapture(0)
-        for res, predict, frame in tqdm.tqdm(run_on_video(cam, model, args)):
+        for res, predict, frame in tqdm.tqdm(run_on_video(cam, model, args, memory)):
             font = cv2.FONT_HERSHEY_SIMPLEX  # 使用默认字体
             frame = np.concatenate((frame, predict), axis=1)
             frame = cv2.putText(frame, res.upper(), (80, 80), font, 2, (255,215,0), 2)
@@ -119,13 +123,13 @@ def demo(model, args):
     elif demo_type == "video":
         cam = cv2.VideoCapture(demo_dir)
         image_dir = demo_dir.split('.')[0]
-        image_size = (1024, 512)  # w h
+        image_size = (args.w, args.h)  # w h
         if os.path.exists(image_dir):
             shutil.rmtree(image_dir)
         os.makedirs(image_dir, exist_ok=True)
 
         counter = 0
-        for res, predict, frame in tqdm.tqdm(run_on_video(cam, model, args)):
+        for res, predict, frame in tqdm.tqdm(run_on_video(cam, model, args, memory)):
             font = cv2.FONT_HERSHEY_SIMPLEX  # 使用默认字体
             frame = np.concatenate((frame, predict), axis=1)
             frame = cv2.resize(frame, image_size)

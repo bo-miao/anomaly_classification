@@ -17,10 +17,8 @@ import torch.utils.data as data
 from torch.autograd import Variable
 import torchvision.transforms as transforms
 
-
 rng = np.random.RandomState(2020)
 
-names = ['Arson','Explosion','Fall','Fighting','Normal']
 
 def load_dataset(train_folder, test_folder, label_folder, args):
     train_dataset = DataLoaderNew(train_folder, label_folder, resize_height=args.h, resize_width=args.w,
@@ -135,21 +133,20 @@ class DataLoaderNew(data.Dataset):
 
         # organize order 3-5ms
         length = len(batch)
-
+        # print(label)
         batch = batch[:length // 2] + batch[(length // 2) + 1:] + [batch[length // 2]]
         label = label[length // 2]
+        #labels = ['Normal','Fight','Fire','Fall']
         labels = ['Normal','Arson','Explosion','Fall','Fighting']
-        if label == 1:
+        if label > 0:
             if video_name.startswith(labels[1]):
                 label = 1
             elif video_name.startswith(labels[2]):
                 label = 2
             elif video_name.startswith(labels[3]):
                 label = 3
-            elif video_name.startswith(labels[4]):
-                label = 4
         batch = np.concatenate(batch, axis=0)
-
+        #print(label)
         return torch.from_numpy(batch), torch.LongTensor([label])
 
     # num frames

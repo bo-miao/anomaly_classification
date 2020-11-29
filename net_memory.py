@@ -36,21 +36,25 @@ from torch.optim.lr_scheduler import MultiStepLR
 # Personal packages
 from parser_parameters import *
 from utils.utils import *
-from utils.demo_classification import *
+from utils.demo_memory import *
 from utils import lr_scheduler, metric, prefetch, summary
-from model.model import *
-from model.model2 import *
-
-from utils.datasets_classification import *
+from model.vae import *
+from utils.datasets import *
 
 logging.basicConfig(level=logging.DEBUG)
 logging.info('current time is {}'.format(time.strftime("%Y-%m-%d %H:%M:%S", time.localtime())))
 
 best_acc1 = 0
+global memory
 
 
 def main(args):
     # Add global variable here and put it in spawn, then it could be updated by all processes
+    if args.gpu is None:
+        memory = F.normalize(torch.rand((args.h * args.w // 64, 32 if 'ResUnet' in args.arch else 16), dtype=torch.float), dim=1).cuda()
+    else:
+        memory = F.normalize(torch.rand((args.h * args.w // 64, 32 if 'ResUnet' in args.arch else 16), dtype=torch.float), dim=1).cuda(args.gpu)
+
     if args.seed is not None:
         random.seed(args.seed)
         torch.manual_seed(args.seed)
@@ -64,10 +68,10 @@ def main(args):
     ngpus_per_node = torch.cuda.device_count()
     args.ngpus_per_node = ngpus_per_node
     args.world_size = ngpus_per_node * args.world_size
-    torch.multiprocessing.spawn(main_worker, nprocs=ngpus_per_node, args=(ngpus_per_node, args))
+    torch.multiprocessing.spawn(main_worker, nprocs=ngpus_per_node, args=(ngpus_per_node, args, memory))
 
 
-def main_worker(gpu, ngpus_per_node, args):
+def main_worker(gpu, ngpus_per_node, args, memory):
     global best_acc1
     args.gpu = gpu
 
@@ -76,7 +80,6 @@ def main_worker(gpu, ngpus_per_node, args):
         args.rank = int(os.environ["RANK"])
 
     args.rank = args.rank * ngpus_per_node + gpu
-
     distributed.init_process_group(backend=args.dist_backend,
                                    init_method=args.dist_url,
                                    world_size=args.world_size,
@@ -88,9 +91,16 @@ def main_worker(gpu, ngpus_per_node, args):
         else:
             print("INFO:PyTorch: Use GPU: {} for evaluating, the rank of this GPU is {}".format(args.gpu, args.rank))
 
-    criterion = nn.CrossEntropyLoss()
-    model = eval(args.arch)()
+    criterion = nn.MSELoss(reduction='none')
+    model = eval(args.arch)(criterion=criterion, args=args)
+
+    # print the number of parameters in the model
     print("INFO:PyTorch: The number of parameters is {}". format(get_the_number_of_params(model)))
+    if args.is_summary:
+        summary.summary(model,
+                        torch.rand((1, 3, args.h, args.w)),
+                        target=torch.ones(1, dtype=torch.long))
+        return None
 
     if args.is_syncbn:
         print("INFO:PyTorch: convert torch.nn.BatchNormND layer in the model to torch.nn.SyncBatchNorm layer")
@@ -117,7 +127,10 @@ def main_worker(gpu, ngpus_per_node, args):
         optimizer = torch.optim.SGD(param_groups, args.lr, momentum=args.momentum,
                                     weight_decay=args.weight_decay, nesterov=True if args.is_nesterov else False)
 
-    args.scaler = GradScaler()
+    #AMP GradScaler
+    if args.is_amp:
+        print("INFO:PyTorch: => Using Pytorch AMP to accelerate Training")
+        args.scaler = GradScaler()
 
     # optionally resume from a checkpoint
     if args.resume:
@@ -133,6 +146,10 @@ def main_worker(gpu, ngpus_per_node, args):
             best_acc1 = checkpoint['best_acc1']
             model.load_state_dict(checkpoint['model'])
             optimizer.load_state_dict(checkpoint['optimizer'])
+
+            memory = torch.from_numpy(checkpoint['memory'])
+            memory = memory.cuda(args.gpu) if args.gpu else memory.cuda()
+
             print("INFO:PyTorch: => loaded checkpoint '{}' (epoch {})".format(args.resume, checkpoint['epoch']))
         else:
             print("INFO:PyTorch: => no checkpoint found at '{}'".format(args.resume))
@@ -150,7 +167,7 @@ def main_worker(gpu, ngpus_per_node, args):
 
     if args.demo:  # TODO: Update code
         with torch.no_grad():
-            demo(model, args)
+            demo_memory(model, args, memory)
         return None
 
     # Data loading code
@@ -161,51 +178,53 @@ def main_worker(gpu, ngpus_per_node, args):
 
     if args.evaluate:
         with torch.no_grad():
-            acc, test_average_loss = evaluate_resnet(model, test_batch, args)
+            acc, test_average_loss = evaluate_memory(model, test_batch, args, memory)
         print('Test AUC: {}%'.format(acc * 100))
         return None
 
     # LOGGING
     setproctitle.setproctitle(args.dataset_type + '_' + args.arch + '_rank{}'.format(args.rank))
     log_path = os.path.join('/home/miaobo/project/anomaly_demo2', 'runs', '_'.join([args.suffix, args.dataset_type,
-                                              args.arch, args.discriminator if args.discriminator else ""]))
+                                              args.arch]))
     val_writer = SummaryWriter(log_dir=log_path)
     print("Tensorboard log: {}".format(log_path))
 
     for epoch in range(args.start_epoch, args.epochs + 1):
         train_sampler.set_epoch(epoch)
-        train_average_loss = train(train_batch, model, criterion, optimizer, epoch, args)
+        train_average_loss = train(train_batch, model, optimizer, epoch, args, memory)
         scheduler.step()
 
         if epoch % args.eval_per_epoch == 0:
             print("Starting EVALUATION ......")
             a = time.time()
             with torch.no_grad():
-                acc1 = evaluate_resnet(model, test_batch, args)
-
+                acc1, test_average_loss = evaluate_memory(model, test_batch, args, memory)
             print("EVALUATION TIME COST: {} min".format(int(time.time()-a)/60))
 
             is_best = acc1 > best_acc1
             best_acc1 = max(acc1, best_acc1)
 
             if args.rank % ngpus_per_node == 0:
-
-                print("epoch: {}, EVALUATION ACC: {}, HISTORY BEST ACC: {}".format(epoch, acc1 * 100, best_acc1 * 100))
+                print("epoch: {}, EVALUATION AUC: {}, HISTORY BEST AUC: {}".format(epoch, acc1 * 100, best_acc1 * 100))
                 # summary per epoch
                 val_writer.add_scalar('avg_acc1', acc1, global_step=epoch)
                 val_writer.add_scalar('best_acc1', best_acc1, global_step=epoch)
+                val_writer.add_scalars('losses', {'TrainLoss': train_average_loss, 'TestLoss': test_average_loss}, global_step=epoch)
                 val_writer.add_scalar('learning_rate', optimizer.param_groups[0]['lr'], global_step=epoch)
+                val_writer.add_scalar('training_loss', train_average_loss, global_step=epoch)
 
                 # save checkpoints
-                filename = '_'.join([args.suffix, args.arch, args.discriminator if args.discriminator else "",
+                filename = '_'.join([args.suffix, args.arch,
                                      args.dataset_type, "checkpoint.pth.tar"])
                 ckpt_dict = {
                     'epoch': epoch + 1,
                     'arch': args.arch,
                     'best_acc1': best_acc1,
                     'model': model.state_dict(),
-                    'optimizer': optimizer.state_dict()
+                    'optimizer': optimizer.state_dict(),
+                    'memory': memory.cpu().numpy()
                 }
+
                 metric.save_checkpoint(ckpt_dict, is_best, args, filename=filename)
 
                 # reload best model every n epoch
@@ -218,15 +237,18 @@ def main_worker(gpu, ngpus_per_node, args):
                         loc = 'cuda:{}'.format(args.gpu)
                         checkpoint = torch.load(os.path.join(args.model_dir, "best_"+filename), map_location=loc)
                     model.load_state_dict(checkpoint['model'])
+                    memory = torch.from_numpy(checkpoint['memory'])
+                    memory = memory.cuda(args.gpu) if args.gpu else memory.cuda()
 
     torch.cuda.empty_cache()
     val_writer.close()
 
 
-def train(train_batch, model, criterion, optimizer, epoch, args):
+def train(train_batch, model, optimizer, epoch, args, memory):
     batch_time = metric.AverageMeter('Time', ':6.3f')
     data_time = metric.AverageMeter('Data', ':6.3f')
     avg_loss = metric.AverageMeter('avg_loss', ':.4e')
+    # show all
     progress = metric.ProgressMeter(len(train_batch), batch_time, data_time, avg_loss, prefix="Epoch: [{}]".format(epoch))
 
     model.train()
@@ -265,13 +287,16 @@ def train(train_batch, model, criterion, optimizer, epoch, args):
 
             continue
 
-        label = labels if args.label else None
-        input_image = patches
+        channel = (patches.size()[1] // args.c - 1) * args.c
+        # input_image = patches[:, 0:channel]
+        # target_image = patches[:, channel:]
+        input_image = patches.detach()
+        target_image = patches[:, channel:]
 
         optimizer.zero_grad()
         with autocast():
-            logit = model.forward(input_image)
-            loss = criterion(logit, label.view(-1))
+            reconstructed_image, loss, memory = model.forward(input_image, gt=target_image, memory=memory, train=True)
+            loss = 0.8 * loss['pixel_loss'].mean() + 0.2 * loss['memory_loss'].mean()
 
         args.scaler.scale(loss).backward()
         args.scaler.step(optimizer)
@@ -283,6 +308,9 @@ def train(train_batch, model, criterion, optimizer, epoch, args):
         if args.rank % args.ngpus_per_node == 0:
             if counter % args.print_freq == 0:
                 progress.print(counter)
+
+        if args.visualize:
+            _ = visualize(reconstructed_image, target_image)
 
         if args.object_detection:
             images, labels, bboxes = prefetcher.next()

@@ -36,7 +36,7 @@ from torch.optim.lr_scheduler import MultiStepLR
 # Personal packages
 from parser_parameters import *
 from utils.utils import *
-from utils.demo import *
+from utils.demo_memory import *
 from utils import lr_scheduler, metric, prefetch, summary
 from model.vae import *
 from model.deeplab import *
