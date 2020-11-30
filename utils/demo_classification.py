@@ -48,11 +48,12 @@ def process_predictions(data, model, frame, args):
     batch = torch.from_numpy(np.concatenate(batch, axis=0)).unsqueeze(0)
     images = batch.cuda()
     # inference
+    s_ = time.time()
     with torch.no_grad():
         with autocast():
             logit = model.forward(images)
             class_vector = F.softmax(logit.view(-1), 0).data.squeeze()
-
+    print("SINGLE FRAME INFERENCE TIME COST {}s".format(time.time()-s_))
     probs, idx = class_vector.sort(0, True)
     classes = args.total_class.split('|')
     result, score = classes[idx[0]], probs[0]

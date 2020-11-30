@@ -17,8 +17,8 @@ python net_classification.py \
     --dist_url ${dist_url} \
     --object_detection 0 \
     --print_freq 20 \
-    --t_length 5 \
-    --interval 2 \
+    --t_length 3 \
+    --interval 1 \
     --visualize 0 \
     --visualize_input 0 \
     -b 32  \
@@ -42,8 +42,8 @@ python net_classification.py \
     --lr 0.1 \
     --lr_mode 'step' \
     --evaluate_time 0 \
-    #--evaluate \
-    #--demo 'video|/data/miaobo/script/video/Fall_005.mp4' \
+    --evaluate \
+    --demo 'video|/data/miaobo/script/video/Fall_005.mp4' \
     #--resume '/home/miaobo/project/anomaly_demo2/ckpt/best_30airsclassification2,3_resnet50__airs_anomaly2_checkpoint.pth.tar' \
 
 # max best_30airsclassification2,3_resnet50__airs_anomaly2_checkpoint.pth.tar
