@@ -54,11 +54,8 @@ def process_predictions(data, model, frame, args):
             class_vector = F.softmax(logit.view(-1), 0).data.squeeze()
 
     probs, idx = class_vector.sort(0, True)
-    #classes = ['Normal','Fight','Fire','Fall']
-    classes = ['Normal','Arson','Explosion','Fall','Fighting']
+    classes = args.total_class.split('|')
     result, score = classes[idx[0]], probs[0]
-    #result2, score2 = classes[idx[1]], probs[1]
-    # res = result + ", " + str(format(score, '.5f'))
     res = result
 
     return res, frame
@@ -131,42 +128,6 @@ def demo(model, args):
         print("TOTAL SAVED FRAMES NUM IS {}".format(counter))
         cam.release()
         convert_img_to_video(image_dir, image_dir+'_demo.avi', image_size, fps=30)
-
-    elif demo_type == "data":
-        #labels = ['Normal', 'Fight', 'Fire', 'Fall']
-        labels = ['Normal','Arson','Explosion','Fall','Fighting']
-        label_file = np.load(os.path.join('/'.join(demo_dir.split('/')[:4]),
-                                          'label', demo_dir.split('/')[-1] + ".npy"))
-
-        frames = glob.glob(os.path.join(demo_dir, '*.jpg'))
-        frames.sort(key=lambda x: int(x.split('/')[-1].split('.')[0]))
-
-        example = cv2.imread(os.path.join(demo_dir, '0.jpg'))
-        sp = (example.shape[0], example.shape[1])
-        fourcc = cv2.VideoWriter_fourcc('M', 'J', 'P', 'G')
-        video_name = demo_dir.split('/')[-1]
-        p = '/data/miaobo/script/video2/'+video_name+'_demo.avi'
-        video_writer = cv2.VideoWriter(p, fourcc, 30, sp)
-        for i in frames:
-            idx = int(i.split('/')[-1].split('.')[0])
-            frame = cv2.imread(i)
-            gt = label_file[idx]
-
-            if gt > 0:
-                if video_name.startswith(labels[1]):
-                    gt = 1
-                elif video_name.startswith(labels[2]):
-                    gt = 2
-                elif video_name.startswith(labels[3]):
-                    gt = 3
-
-            font = cv2.FONT_HERSHEY_SIMPLEX  # 使用默认字体
-            frame = cv2.putText(frame, str(gt).upper(), (40, 40), font, 2, (255, 215, 0), 2)
-            print(gt, i)
-            video_writer.write(frame)
-
-        video_writer.release()
-        print("Finish writing video: ", demo_dir, ' to ', p)
 
     else:
         print("MUST SPECIFY A DEMO TYPE.")

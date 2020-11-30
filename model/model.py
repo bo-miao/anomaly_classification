@@ -4,6 +4,11 @@ import torch.nn as nn
 from typing import Type, Any, Callable, Union, List, Optional
 from torch.cuda.amp import autocast
 
+##############
+#FIRST EXTRACT FEATURE OF SEVERAL FRAMES USING 7X7 CONV, THEN CONCATENATE FEATURE TOGETHER AND PUSH THEM INTO RESIDUAL NETWORK
+##############
+
+
 
 def conv3x3(in_planes: int, out_planes: int, stride: int = 1, groups: int = 1, dilation: int = 1) -> nn.Conv2d:
     """3x3 convolution with padding"""
@@ -131,6 +136,7 @@ class ResNet(nn.Module):
         block: Type[Union[BasicBlock, Bottleneck]],
         layers: List[int],
         num_classes: int = 5,
+        num_frames: int = 3,
         zero_init_residual: bool = False,
         groups: int = 1,
         width_per_group: int = 64,
@@ -164,7 +170,7 @@ class ResNet(nn.Module):
         )
 
         self.conv2 = nn.Sequential(
-            nn.Conv2d(in_channels=self.inplanes * 3, out_channels=self.inplanes, kernel_size=1, stride=1, bias=False),
+            nn.Conv2d(in_channels=self.inplanes * num_frames, out_channels=self.inplanes, kernel_size=1, stride=1, bias=False),
             nn.BatchNorm2d(self.inplanes),
             nn.ReLU(inplace=True),
             nn.Conv2d(in_channels=self.inplanes, out_channels=self.inplanes, kernel_size=3, stride=1, padding=1, bias=False),
@@ -240,23 +246,6 @@ class ResNet(nn.Module):
         x = self.avgpool(x)
         x = torch.flatten(x, 1)
         x = self.fc(x)
-        return x
-
-    def _forward_impl_batch(self, x: Tensor) -> Tensor:
-        # See note [TorchScript super()]
-        b, c, h, w = x.shape
-        x = self.conv1(x)
-        x = self.maxpool(x)
-
-        x = self.layer1(x)
-        x = self.layer2(x)
-        x = self.layer3(x)
-        x = self.layer4(x)
-
-        x = self.avgpool(x)
-        x = torch.flatten(x, 1)
-        x = self.fc(x)
-
         return x
 
     #@autocast

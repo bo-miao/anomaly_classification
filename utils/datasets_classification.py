@@ -22,10 +22,10 @@ rng = np.random.RandomState(2020)
 
 def load_dataset(train_folder, test_folder, label_folder, args):
     train_dataset = DataLoaderNew(train_folder, label_folder, resize_height=args.h, resize_width=args.w,
-                                  time_step=args.t_length - 1, interval=args.interval, object=args.object_detection)
+                                  time_step=args.t_length - 1, interval=args.interval, args=args)
 
     test_dataset = DataLoaderNew(test_folder, label_folder, resize_height=args.h, resize_width=args.w,
-                                 time_step=args.t_length - 1, interval=args.interval, object=args.object_detection)
+                                 time_step=args.t_length - 1, interval=args.interval, args=args)
     train_sampler = None
     if not args.evaluate:
         # TODO: Shuffle notice
@@ -70,8 +70,8 @@ def read_frame(filename, h, w):
 
 
 class DataLoaderNew(data.Dataset):
-    def __init__(self, video_folder, label_folder,
-                 resize_height, resize_width, time_step=4, num_pred=1, interval=1, object=1):
+    def __init__(self, video_folder, label_folder, resize_height, resize_width,
+                 time_step=4, num_pred=1, interval=1, object=0, args=None):
         self.dir = video_folder
         self.labels = label_folder
         self.videos = OrderedDict()
@@ -83,6 +83,7 @@ class DataLoaderNew(data.Dataset):
         self.samples = self.get_all_samples()
         self.interval = interval
         self.object_detection = object
+        self.total_labels = args.total_class.split('|')
 
     def setup(self):
         videos = glob.glob(os.path.join(self.dir, '*'))
@@ -131,33 +132,20 @@ class DataLoaderNew(data.Dataset):
             image = torch.from_numpy(image).permute(2, 0, 1).float()
             batch.append(image)
 
-        # organize order 3-5ms
         length = len(batch)
-        # print(label)
         batch = batch[:length // 2] + batch[(length // 2) + 1:] + [batch[length // 2]]
         label = label[length // 2]
-        #labels = ['Normal','Fight','Fire','Fall']
-        labels = ['Normal','Arson','Explosion','Fall','Fighting']
+
+        # RETARGET ANOMALY LABEL TO SPECIFIC CLASS
         if label > 0:
-            if video_name.startswith(labels[1]):
-                label = 1
-            elif video_name.startswith(labels[2]):
-                label = 2
-            elif video_name.startswith(labels[3]):
-                label = 3
+            for idx, l in enumerate(self.total_labels):
+                if video_name.startswith(l):
+                    label = idx
+                    break
+
         batch = np.concatenate(batch, axis=0)
-        #print(label)
         return torch.from_numpy(batch), torch.LongTensor([label])
 
     # num frames
     def __len__(self):
         return len(self.samples)
-
-
-if __name__ == "__main__":
-    p = '/data/miaobo/ucf/'
-    video_folder, label_folder, transform, resize_height, resize_width = \
-        os.path.join(p, "training_toy/frames"), os.path.join(p, "label"), None, 10, 10
-
-    train_dataset = DataLoaderNew(video_folder, label_folder, transform, resize_height=resize_height, resize_width=resize_width,
-                                  time_step=4)

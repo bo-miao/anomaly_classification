@@ -2,12 +2,12 @@
 # python PATH
 cd ..
 
-gpus='8,9'
+gpus='8'
 export CUDA_VISIBLE_DEVICES=${gpus}
 echo "using gpus ${gpus}"
 
 port=$(date "+%S")
-suffix=${port}'ResNetEnsemble'${gpus}
+suffix=${port}'resnet50'${gpus}
 dist_url='tcp://127.0.0.1:72'${port}
 echo ${dist_url}
 
@@ -21,17 +21,18 @@ python net_classification.py \
     --interval 2 \
     --visualize 0 \
     --visualize_input 0 \
-    -b 64  \
-    --test_batch_size 64 \
+    -b 32  \
+    --test_batch_size 32 \
     --workers_test 4 \
     --h 256 \
     --w 256 \
-    --arch 'ResNetEnsemble' \
+    --arch 'resnet50' \
     --dataset_type 'ucf' \
     --label 1 \
     --training_folder 'training_simple/frames' \
     --testing_folder 'testing_simple/frames' \
     --label_folder 'label' \
+    --total_class 'Normal|Arson|Explosion|Fall|Fighting' \
     --dataset_path  '/data/miaobo' \
     --gpu 0 \
     --eval_per_epoch 2 \

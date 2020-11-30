@@ -14,9 +14,9 @@ def default_argument_parser():
     parser.add_argument('--training_folder', type=str, default='training/frames', help='directory of training data')
     parser.add_argument('--testing_folder', type=str, default='testing/frames', help='directory of testing data')
     parser.add_argument('--label_folder', type=str, default='label', help='directory of label data')
+    parser.add_argument('--total_class', default='Normal|Arson|Explosion|Fall|Fighting', type=str, help='TOTAL CLASS')
     parser.add_argument('--label', default=1, type=int, help='whether has data label in training')
     parser.add_argument('--model_dir', type=str, default="/home/miaobo/project/anomaly_demo2/ckpt", help='directory of model')
-
     parser.add_argument('--object_detection', default=0, type=int, help='whether use object level')
     parser.add_argument('--path_h', default=64, type=int, help='object h')
     parser.add_argument('--path_w', default=64, type=int, help='object w')
