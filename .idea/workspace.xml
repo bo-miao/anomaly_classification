@@ -2,28 +2,7 @@
 <project version="4">
   <component name="ChangeListManager">
     <list default="true" id="b5230d11-739b-4e03-b279-0b500413c1ed" name="Default Changelist" comment="">
-      <change beforePath="$PROJECT_DIR$/.idea/deployment.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/deployment.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Readme" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/functions.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/model/__init__.py" beforeDir="false" afterPath="$PROJECT_DIR$/model/__init__.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/model/block.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/model/discriminator.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/model/memory_patch.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/model/model.py" beforeDir="false" afterPath="$PROJECT_DIR$/model/model.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/model/vae.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/net.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/net_memory.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/parser_parameters.py" beforeDir="false" afterPath="$PROJECT_DIR$/parser_parameters.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/shell/classification_train_ucf.sh" beforeDir="false" afterPath="$PROJECT_DIR$/shell/classification_train_ucf.sh" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/shell/memory_train_ucf.sh" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/shell/train_ucf.sh" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/toy.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/utils/datasets.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/utils/datasets_classification.py" beforeDir="false" afterPath="$PROJECT_DIR$/utils/datasets_classification.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/utils/demo_classification.py" beforeDir="false" afterPath="$PROJECT_DIR$/utils/demo_classification.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/utils/demo_memory.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/utils/utils.py" beforeDir="false" afterPath="$PROJECT_DIR$/utils/utils.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/README.md" beforeDir="false" afterPath="$PROJECT_DIR$/README.md" afterDir="false" />
     </list>
     <option name="EXCLUDED_CONVERTED_TO_IGNORED" value="true" />
     <option name="SHOW_DIALOG" value="false" />
@@ -45,11 +24,23 @@
           </provider>
         </entry>
       </file>
-      <file pinned="false" current-in-tab="true">
+      <file pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/shell/classification_train_ucf.sh">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="476">
-              <caret line="35" column="36" lean-forward="true" selection-start-line="35" selection-start-column="36" selection-end-line="35" selection-end-column="36" />
+            <state relative-caret-position="252">
+              <caret line="27" column="13" lean-forward="true" selection-start-line="27" selection-start-column="13" selection-end-line="27" selection-end-column="13" />
+            </state>
+          </provider>
+        </entry>
+      </file>
+      <file pinned="false" current-in-tab="true">
+        <entry file="file://$PROJECT_DIR$/README.md">
+          <provider selected="true" editor-type-id="split-provider[text-editor;markdown-preview-editor]">
+            <state split_layout="SPLIT">
+              <first_editor relative-caret-position="336">
+                <caret line="12" column="44" selection-start-line="12" selection-start-column="44" selection-end-line="12" selection-end-column="44" />
+              </first_editor>
+              <second_editor />
             </state>
           </provider>
         </entry>
@@ -125,7 +116,6 @@
   </component>
   <component name="FindInProjectRecents">
     <findStrings>
-      <find>evaluate_</find>
       <find>Evaluation</find>
       <find>Fight</find>
       <find>anomaly_d</find>
@@ -155,6 +145,7 @@
       <find>args</find>
       <find>self.total_labels</find>
       <find>Explosion</find>
+      <find>total_class</find>
     </findStrings>
     <dirStrings>
       <dir>D:\github\anomaly_demo4</dir>
@@ -184,6 +175,7 @@
         <option value="$PROJECT_DIR$/parser_parameters.py" />
         <option value="$PROJECT_DIR$/utils/datasets_classification.py" />
         <option value="$PROJECT_DIR$/shell/classification_train_ucf.sh" />
+        <option value="$PROJECT_DIR$/README.md" />
       </list>
     </option>
   </component>
@@ -270,15 +262,16 @@
       <workItem from="1606384989801" duration="22668000" />
       <workItem from="1606565678079" duration="52000" />
       <workItem from="1606566540911" duration="3272000" />
-      <workItem from="1606704557717" duration="2129000" />
+      <workItem from="1606704557717" duration="2328000" />
     </task>
     <servers />
   </component>
   <component name="TimeTrackingManager">
-    <option name="totallyTimeSpent" value="52801000" />
+    <option name="totallyTimeSpent" value="53000000" />
   </component>
   <component name="ToolWindowManager">
     <frame x="0" y="0" width="1554" height="832" extended-state="0" />
+    <editor active="true" />
     <layout>
       <window_info active="true" content_ui="combo" id="Project" order="0" visible="true" weight="0.19117647" />
       <window_info id="Structure" order="1" side_tool="true" weight="0.25" />
@@ -501,8 +494,18 @@
     </entry>
     <entry file="file://$PROJECT_DIR$/shell/classification_train_ucf.sh">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="476">
-          <caret line="35" column="36" lean-forward="true" selection-start-line="35" selection-start-column="36" selection-end-line="35" selection-end-column="36" />
+        <state relative-caret-position="252">
+          <caret line="27" column="13" lean-forward="true" selection-start-line="27" selection-start-column="13" selection-end-line="27" selection-end-column="13" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/README.md">
+      <provider selected="true" editor-type-id="split-provider[text-editor;markdown-preview-editor]">
+        <state split_layout="SPLIT">
+          <first_editor relative-caret-position="336">
+            <caret line="12" column="44" selection-start-line="12" selection-start-column="44" selection-end-line="12" selection-end-column="44" />
+          </first_editor>
+          <second_editor />
         </state>
       </provider>
     </entry>
